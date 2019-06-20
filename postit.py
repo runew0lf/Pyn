@@ -6,7 +6,7 @@ from PySide2.QtWidgets import (
     QAction,
     QApplication,
     QDesktopWidget,
-    QPlainTextEdit,
+    QTextEdit,
     QMainWindow,
     QMenu,
     QSystemTrayIcon,
@@ -16,10 +16,18 @@ from PySide2.QtWidgets import (
 YELLOW = "#EDE976"
 BLUE = "#7697F4"
 
-postit_list = []
+pyn_list = []
 
+"""
+TODO: 
+Save notes, 
+Colour Selector,
+Change context menu's to show notes
+Delete notes
 
-class CustomLineEdit(QPlainTextEdit):
+"""
+
+class CustomLineEdit(QTextEdit):
     def __init__(self, parent=None):
         super(CustomLineEdit, self).__init__()
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
@@ -53,7 +61,7 @@ class Window(QMainWindow):
         self.icon = QIcon("icon.png")
         self.move(qtRectangle.topLeft())
 
-        self.setWindowTitle(f"Python Post-It - {window_title}")
+        self.setWindowTitle(f"Pyn - {window_title}")
         self.setWindowIcon(self.icon)
         self.setStyleSheet(f"background-color: {YELLOW}")
 
@@ -65,8 +73,6 @@ class Window(QMainWindow):
 
         self.show()
 
-
-
     # Override closeEvent, to intercept the window closing event
     def closeEvent(self, event):
         event.ignore()
@@ -76,8 +82,7 @@ class Window(QMainWindow):
 # Restore view when tray icon doubleclicked
 def systemIcon(reason):
     if reason == QSystemTrayIcon.DoubleClick:
-        # self.show()
-        pass
+        show_all()
 
 
 def setup_app(app):
@@ -109,29 +114,28 @@ def setup_app(app):
 
 
 def new_note():
-    global postit_list
-    postit_list.append(Window(window_title="New Note"))
+    global pyn_list
+    pyn_list.append(Window(window_title="New Note"))
 
 
 def show_all():
-    global postit_list
-    for note in postit_list:
+    global pyn_list
+    for note in pyn_list:
         note.show()
 
 
 def hide_all():
-    global postit_list
-    for note in postit_list:
+    global pyn_list
+    for note in pyn_list:
         note.hide()
 
 
 def run():
-    global postit_list
+    global pyn_list
     app = QApplication(sys.argv)
     setup_app(app)
 
-    postit_list.append(Window(window_title="Gui"))
-    postit_list.append(Window(window_title="NewGui"))
+    pyn_list.append(Window(window_title="Test "))
 
     try:
         sys.exit(app.exec_())
