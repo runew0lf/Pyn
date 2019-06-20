@@ -1,7 +1,6 @@
 import sys
-import time
 
-from PySide2.QtGui import QFont, QIcon, QFontDatabase, QImage
+from PySide2.QtGui import QFont, QIcon, QFontDatabase, QCursor
 from PySide2 import QtCore
 from PySide2.QtWidgets import (
     QAction,
@@ -11,14 +10,35 @@ from PySide2.QtWidgets import (
     QMainWindow,
     QMenu,
     QSystemTrayIcon,
-    qApp,
-    QWidget,
+    qApp
 )
 
 YELLOW = "#EDE976"
+BLUE = "#7697F4"
 
 postit_list = []
 
+
+class CustomLineEdit(QPlainTextEdit):
+    def __init__(self, parent=None):
+        super(CustomLineEdit, self).__init__()
+        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.__contextMenu)
+
+    def __contextMenu(self):
+        # self._normalMenu = self.createStandardContextMenu()
+        self._normalMenu = QMenu()
+        self._addCustomMenuItems(self._normalMenu)
+        self._normalMenu.exec_(QCursor.pos())
+
+    def _addCustomMenuItems(self, menu):
+        # menu.addSeparator()
+        menu.addAction("Bloo", self.testFunc)
+
+    def testFunc(self):
+        self.setStyleSheet(f"background-color: {BLUE}")
+
+ 
 
 class Window(QMainWindow):
     def __init__(self, window_title=""):
@@ -37,18 +57,15 @@ class Window(QMainWindow):
         self.setWindowIcon(self.icon)
         self.setStyleSheet(f"background-color: {YELLOW}")
 
-        self.home()
-
-    def home(self):
-        self.text_window = QPlainTextEdit()  # the actual editor pane
-        self.text_window.setTabStopWidth(
-            800
-        )  # Set the tabstop to a nice pretty 800 pixels
+        self.text_window = CustomLineEdit()  # the actual editor pane
         fixed_font = QFontDatabase.systemFont(QFontDatabase.FixedFont)
         fixed_font.setPointSize(24)
         self.text_window.setFont(QFont("Comic Sans MS", 30))
         self.setCentralWidget(self.text_window)
+
         self.show()
+
+
 
     # Override closeEvent, to intercept the window closing event
     def closeEvent(self, event):
