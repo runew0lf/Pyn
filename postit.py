@@ -1,16 +1,30 @@
 import sys
+import time
 
-from PySide2.QtGui import QFont, QIcon, QFontDatabase
-from PySide2.QtWidgets import (QAction, QApplication, QDesktopWidget, QPlainTextEdit,
-                               QMainWindow, QMenu, QSystemTrayIcon, qApp, QWidget)
+from PySide2.QtGui import QFont, QIcon, QFontDatabase, QImage
+from PySide2 import QtCore
+from PySide2.QtWidgets import (
+    QAction,
+    QApplication,
+    QDesktopWidget,
+    QPlainTextEdit,
+    QMainWindow,
+    QMenu,
+    QSystemTrayIcon,
+    qApp,
+    QWidget,
+)
 
 YELLOW = "#EDE976"
 
+postit_list = []
+
 
 class Window(QMainWindow):
-    def __init__(self):
+    def __init__(self, window_title=""):
         super(Window, self).__init__()
         # Set size and centre window
+        self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
         self.setGeometry(50, 50, 300, 300)
         qtRectangle = self.frameGeometry()
         centerPoint = QDesktopWidget().availableGeometry().center()
@@ -19,7 +33,7 @@ class Window(QMainWindow):
         self.icon = QIcon("icon.png")
         self.move(qtRectangle.topLeft())
 
-        self.setWindowTitle("Python Post-It")
+        self.setWindowTitle(f"Python Post-It - {window_title}")
         self.setWindowIcon(self.icon)
         self.setStyleSheet(f"background-color: {YELLOW}")
 
@@ -27,38 +41,14 @@ class Window(QMainWindow):
 
     def home(self):
         self.text_window = QPlainTextEdit()  # the actual editor pane
-        self.text_window.setTabStopWidth(800)  # Set the tabstop to a nice pretty 800 pixels
+        self.text_window.setTabStopWidth(
+            800
+        )  # Set the tabstop to a nice pretty 800 pixels
         fixed_font = QFontDatabase.systemFont(QFontDatabase.FixedFont)
         fixed_font.setPointSize(24)
-        self.text_window.setFont(QFont('Comic Sans MS', 30))
-        self.setCentralWidget(self.text_window)    
-        # Init QSystemTrayIcon
-        self.tray_icon = QSystemTrayIcon(self)
-        self.tray_icon.setIcon(self.icon)
-
-        # Add Menu Actions
-        show_action = QAction("Show", self)
-        quit_action = QAction("Exit", self)
-        hide_action = QAction("Hide", self)
-        show_action.triggered.connect(self.show)
-        hide_action.triggered.connect(self.hide)
-        quit_action.triggered.connect(qApp.quit)
-
-        # Add Tray Menu
-        tray_menu = QMenu()
-        tray_menu.addAction(show_action)
-        tray_menu.addAction(hide_action)
-        tray_menu.addAction(quit_action)
-        self.tray_icon.setContextMenu(tray_menu)
-        self.tray_icon.activated.connect(self.systemIcon)
-        self.tray_icon.show()
-
+        self.text_window.setFont(QFont("Comic Sans MS", 30))
+        self.setCentralWidget(self.text_window)
         self.show()
-
-    # Restore view when tray icon doubleclicked
-    def systemIcon(self, reason):
-        if reason == QSystemTrayIcon.DoubleClick:
-            self.show()
 
     # Override closeEvent, to intercept the window closing event
     def closeEvent(self, event):
@@ -66,12 +56,66 @@ class Window(QMainWindow):
         self.hide()
 
 
+# Restore view when tray icon doubleclicked
+def systemIcon(reason):
+    if reason == QSystemTrayIcon.DoubleClick:
+        # self.show()
+        pass
+
+
+def setup_app(app):
+    # Init QSystemTrayIcon
+    icon = QIcon("icon.png")
+    tray_icon = QSystemTrayIcon(app)
+    tray_icon.setIcon(icon)
+
+    # Add Menu Actions to App
+    new_action = QAction("New", app)
+    show_action = QAction("Show All", app)
+    hide_action = QAction("Hide All", app)
+    quit_action = QAction("Exit", app)
+
+    new_action.triggered.connect(new_note)
+    show_action.triggered.connect(show_all)
+    hide_action.triggered.connect(hide_all)
+    quit_action.triggered.connect(qApp.quit)
+
+    # Add Tray Menu
+    tray_menu = QMenu()
+    tray_menu.addAction(new_action)
+    tray_menu.addAction(show_action)
+    tray_menu.addAction(hide_action)
+    tray_menu.addAction(quit_action)
+    tray_icon.setContextMenu(tray_menu)
+    tray_icon.activated.connect(systemIcon)
+    tray_icon.show()
+
+
+def new_note():
+    global postit_list
+    postit_list.append(Window(window_title="New Note"))
+
+
+def show_all():
+    global postit_list
+    for note in postit_list:
+        note.show()
+
+
+def hide_all():
+    global postit_list
+    for note in postit_list:
+        note.hide()
+
+
 def run():
+    global postit_list
     app = QApplication(sys.argv)
-    GUI = Window()
-    GUI.setVisible(True)
-    NEWGUI = Window()
-    NEWGUI.setVisible(True)    
+    setup_app(app)
+
+    postit_list.append(Window(window_title="Gui"))
+    postit_list.append(Window(window_title="NewGui"))
+
     try:
         sys.exit(app.exec_())
     except SystemExit:
