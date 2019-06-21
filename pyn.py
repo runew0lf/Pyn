@@ -1,6 +1,6 @@
 import sys
 
-from PySide2.QtGui import QFont, QIcon, QFontDatabase, QCursor
+from PySide2.QtGui import QFont, QIcon, QFontDatabase, QCursor, QColor
 from PySide2 import QtCore
 from PySide2.QtWidgets import (
     QAction,
@@ -10,22 +10,22 @@ from PySide2.QtWidgets import (
     QMainWindow,
     QMenu,
     QSystemTrayIcon,
-    qApp
+    qApp,
+    QColorDialog,
 )
 
 YELLOW = "#EDE976"
-BLUE = "#7697F4"
 
 pyn_list = []
 
 """
 TODO: 
-Save notes, 
-Colour Selector,
+Save notes
 Change context menu's to show notes
-Delete notes
-
+Change note title
+Change font
 """
+
 
 class CustomLineEdit(QTextEdit):
     def __init__(self, parent=None):
@@ -34,19 +34,22 @@ class CustomLineEdit(QTextEdit):
         self.customContextMenuRequested.connect(self.__contextMenu)
 
     def __contextMenu(self):
-        # self._normalMenu = self.createStandardContextMenu()
+        # self._normalMenu = self.createStandardContextMenu() # Remove this for standard menu
         self._normalMenu = QMenu()
         self._addCustomMenuItems(self._normalMenu)
         self._normalMenu.exec_(QCursor.pos())
 
     def _addCustomMenuItems(self, menu):
-        # menu.addSeparator()
-        menu.addAction("Bloo", self.testFunc)
+        # menu.addSeparator() # add a seperator
+        menu.addAction("Change Colour", self.colourchange)
 
-    def testFunc(self):
-        self.setStyleSheet(f"background-color: {BLUE}")
+    def colourchange(self):
+        dialog = QColorDialog()
+        dialog.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
+        dialog.exec()
+        color = dialog.selectedColor()
+        self.setStyleSheet(f"background-color: {color.name()}")
 
- 
 
 class Window(QMainWindow):
     def __init__(self, window_title=""):
@@ -75,9 +78,16 @@ class Window(QMainWindow):
 
     # Override closeEvent, to intercept the window closing event
     def closeEvent(self, event):
-        event.ignore()
-        self.hide()
+        global pyn_list
+        pyn_list.remove(self)
 
+
+    #Check for minimized window and hide it    
+    def changeEvent(self, event):
+        if event.type() == QtCore.QEvent.WindowStateChange:
+            if self.windowState() & QtCore.Qt.WindowMinimized:
+                self.setWindowState(QtCore.Qt.WindowNoState)
+                self.hide()
 
 # Restore view when tray icon doubleclicked
 def systemIcon(reason):
@@ -100,7 +110,7 @@ def setup_app(app):
     new_action.triggered.connect(new_note)
     show_action.triggered.connect(show_all)
     hide_action.triggered.connect(hide_all)
-    quit_action.triggered.connect(qApp.quit)
+    quit_action.triggered.connect(quit_app)
 
     # Add Tray Menu
     tray_menu = QMenu()
@@ -112,6 +122,12 @@ def setup_app(app):
     tray_icon.activated.connect(systemIcon)
     tray_icon.show()
 
+
+def quit_app():
+    global pyn_list
+    with open("pyn.data", "wb") as pickle_data:
+        pickle.dump(pyn_list, pickle_data)
+    qApp.quit
 
 def new_note():
     global pyn_list
