@@ -1,18 +1,10 @@
 import sys
 
-from PySide2.QtGui import QFont, QIcon, QFontDatabase, QCursor, QColor
 from PySide2 import QtCore
+from PySide2.QtGui import QCursor, QFont, QFontDatabase, QIcon
 from PySide2.QtWidgets import (
-    QAction,
-    QApplication,
-    QDesktopWidget,
-    QTextEdit,
-    QMainWindow,
-    QMenu,
-    QSystemTrayIcon,
-    qApp,
-    QColorDialog,
-)
+    QAction, QApplication, QColorDialog, QDesktopWidget, QFontDialog,
+    QMainWindow, QMenu, QSystemTrayIcon, QTextEdit)
 
 YELLOW = "#EDE976"
 
@@ -21,9 +13,8 @@ pyn_list = []
 """
 TODO: 
 Save notes
-Change context menu's to show notes
+Change context menu's to show notes - maybe?
 Change note title
-Change font
 """
 
 
@@ -42,6 +33,14 @@ class CustomLineEdit(QTextEdit):
     def _addCustomMenuItems(self, menu):
         # menu.addSeparator() # add a seperator
         menu.addAction("Change Colour", self.colourchange)
+        menu.addAction("Change Font", self.changefont)
+
+    def changefont(self):
+        dialog = QFontDialog()
+        dialog.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
+        dialog.exec()
+        font = dialog.selectedFont()
+        self.setFont(font)
 
     def colourchange(self):
         dialog = QColorDialog()
@@ -51,13 +50,14 @@ class CustomLineEdit(QTextEdit):
         self.setStyleSheet(f"background-color: {color.name()}")
 
 
-class Window(QMainWindow):
+class Pyn(QMainWindow):
     def __init__(self, window_title=""):
-        super(Window, self).__init__()
+        super(Pyn, self).__init__()
         # Set size and centre window
         self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
         self.setGeometry(50, 50, 300, 300)
         qtRectangle = self.frameGeometry()
+        print(qtRectangle)
         centerPoint = QDesktopWidget().availableGeometry().center()
         qtRectangle.moveCenter(centerPoint)
 
@@ -81,13 +81,13 @@ class Window(QMainWindow):
         global pyn_list
         pyn_list.remove(self)
 
-
-    #Check for minimized window and hide it    
+    # Check for minimized window and hide it
     def changeEvent(self, event):
         if event.type() == QtCore.QEvent.WindowStateChange:
             if self.windowState() & QtCore.Qt.WindowMinimized:
                 self.setWindowState(QtCore.Qt.WindowNoState)
                 self.hide()
+
 
 # Restore view when tray icon doubleclicked
 def systemIcon(reason):
@@ -96,6 +96,9 @@ def systemIcon(reason):
 
 
 def setup_app(app):
+    # Stop window closing
+    app.setQuitOnLastWindowClosed(False)
+
     # Init QSystemTrayIcon
     icon = QIcon("icon.png")
     tray_icon = QSystemTrayIcon(app)
@@ -124,14 +127,12 @@ def setup_app(app):
 
 
 def quit_app():
-    global pyn_list
-    with open("pyn.data", "wb") as pickle_data:
-        pickle.dump(pyn_list, pickle_data)
-    qApp.quit
+    exit()
+
 
 def new_note():
     global pyn_list
-    pyn_list.append(Window(window_title="New Note"))
+    pyn_list.append(Pyn(window_title="New Note"))
 
 
 def show_all():
@@ -148,15 +149,12 @@ def hide_all():
 
 def run():
     global pyn_list
+
     app = QApplication(sys.argv)
     setup_app(app)
 
-    pyn_list.append(Window(window_title="Test "))
-
-    try:
-        sys.exit(app.exec_())
-    except SystemExit:
-        pass
+    pyn_list.append(Pyn(window_title="Test "))
+    app.exec_()
 
 
 if __name__ == "__main__":
