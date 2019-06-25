@@ -1,17 +1,18 @@
 import sys
+import json
 
 from PySide2 import QtCore
-from PySide2.QtGui import QCursor, QFont, QFontDatabase, QIcon
-from PySide2.QtWidgets import (
-    QAction, QApplication, QColorDialog, QDesktopWidget, QFontDialog,
-    QMainWindow, QMenu, QSystemTrayIcon, QTextEdit)
+from PySide2.QtGui import QCursor, QFont, QFontDatabase, QIcon, QPalette
+from PySide2.QtWidgets import (QAction, QApplication, QColorDialog,
+                               QDesktopWidget, QDialog, QFontDialog,
+                               QMainWindow, QMenu, QSystemTrayIcon, QTextEdit)
 
 YELLOW = "#EDE976"
 
 pyn_list = []
 
 """
-TODO: 
+TODO:
 Save notes
 Change context menu's to show notes - maybe?
 Change note title
@@ -34,6 +35,12 @@ class CustomLineEdit(QTextEdit):
         # menu.addSeparator() # add a seperator
         menu.addAction("Change Colour", self.colourchange)
         menu.addAction("Change Font", self.changefont)
+        menu.addAction("Edit Title", self.changetitle)
+
+    def changetitle(self):
+        popup = ExamplePopup(self)
+        popup.setGeometry(100, 200, 100, 100)
+        popup.exec_()
 
     def changefont(self):
         dialog = QFontDialog()
@@ -50,29 +57,47 @@ class CustomLineEdit(QTextEdit):
         self.setStyleSheet(f"background-color: {color.name()}")
 
 
+class ExamplePopup(QDialog):
+    def __init__(self, name="test", parent=None):
+        super().__init__(parent)
+        self.name = name
+        self.label = QTextEdit(self)
+        self.setWindowFlags(
+            QtCore.Qt.FramelessWindowHint | QtCore.Qt.WindowStaysOnTopHint
+        )
+
+
 class Pyn(QMainWindow):
-    def __init__(self, window_title=""):
+    def __init__(self, saved_data=None):
         super(Pyn, self).__init__()
         # Set size and centre window
+        # "text": pyn.text_window.toPlainText(),
+
+        if saved_data is None:
+            self.setGeometry(50, 50, 300, 300)
+            qtRectangle = self.frameGeometry()
+            centerPoint = QDesktopWidget().availableGeometry().center()
+            qtRectangle.moveCenter(centerPoint)
+            self.move(qtRectangle.topLeft())
+            self.setStyleSheet(f"background-color: {YELLOW}")
+        else:
+            rect = saved_data['rect']
+            rect[3] -= 32
+            self.setGeometry(*rect)
+            self.setStyleSheet(f"background-color: {saved_data['background']}")
+
         self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
-        self.setGeometry(50, 50, 300, 300)
-        qtRectangle = self.frameGeometry()
-        print(qtRectangle)
-        centerPoint = QDesktopWidget().availableGeometry().center()
-        qtRectangle.moveCenter(centerPoint)
-
         self.icon = QIcon("icon.png")
-        self.move(qtRectangle.topLeft())
-
-        self.setWindowTitle(f"Pyn - {window_title}")
         self.setWindowIcon(self.icon)
-        self.setStyleSheet(f"background-color: {YELLOW}")
-
+        self.setWindowTitle(f"Pyn")
         self.text_window = CustomLineEdit()  # the actual editor pane
-        fixed_font = QFontDatabase.systemFont(QFontDatabase.FixedFont)
-        fixed_font.setPointSize(24)
-        self.text_window.setFont(QFont("Comic Sans MS", 30))
         self.setCentralWidget(self.text_window)
+
+        if saved_data is None:
+            self.text_window.setFont(QFont("Comic Sans MS", 30))
+        else:
+            self.text_window.setFont(QFont(saved_data['font'], saved_data['font_size']))
+            self.text_window.setText(saved_data['text'])
 
         self.show()
 
@@ -127,12 +152,25 @@ def setup_app(app):
 
 
 def quit_app():
+    global pyn_list
+    json_data = []
+    for pyn in pyn_list:
+        pyn_data = {
+        "text": pyn.text_window.toPlainText(),
+        "background": pyn.text_window.palette().color(QPalette.Background).name(),
+        "rect": pyn.frameGeometry().getRect(),
+        "font": pyn.text_window.currentFont().family(),
+        "font_size": pyn.text_window.currentFont().pointSize()
+        }
+        json_data.append(pyn_data)
+    with open('data.json', 'w') as outfile:
+        json.dump(json_data, outfile)
     exit()
 
 
 def new_note():
     global pyn_list
-    pyn_list.append(Pyn(window_title="New Note"))
+    pyn_list.append(Pyn())
 
 
 def show_all():
@@ -153,7 +191,11 @@ def run():
     app = QApplication(sys.argv)
     setup_app(app)
 
-    pyn_list.append(Pyn(window_title="Test "))
+    with open('data.json') as json_file:  
+        data = json.load(json_file)
+        for note in data:
+            # pyn_list.append(Pyn())
+            pyn_list.append(Pyn(saved_data=note))
     app.exec_()
 
 
